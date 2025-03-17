@@ -16,5 +16,5 @@ function hanoi(N, Orig, Dest, Temp) {
 }
 
 // Exemplo de chamada para 3 discos
-hanoi(5, 'A', 'C', 'B');
+hanoi(3, 'A', 'C', 'B');
 console.log(`Total de movimentos: ${contagem}`)
