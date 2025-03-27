@@ -1,0 +1,59 @@
+class Livro:
+    def __init__(self, titulo, autor):
+        self.titulo = titulo
+        self.autor = autor
+        self.status = "disponível"
+
+    def emprestar(self):
+        if self.status == "disponível":
+            self.status = "emprestado"
+            return True
+        return False
+
+    def devolver(self):
+        if self.status == "emprestado":
+            self.status = "disponível"
+            return True
+        return False
+
+class Usuario:
+    def __init__(self, nome, id_usuario):
+        self.nome = nome
+        self.id_usuario = id_usuario
+        self.livros_emprestados = []
+
+    def emprestar_livro(self, livro):
+        if livro.emprestar():
+            self.livros_emprestados.append(livro)
+            print(f"{livro.titulo} foi emprestado para {self.nome}.")
+        else:
+            print(f"O livro {livro.titulo} não está disponível.")
+
+    def devolver_livro(self, livro):
+        if livro in self.livros_emprestados:
+            livro.devolver()
+            self.livros_emprestados.remove(livro)
+            print(f"{livro.titulo} foi devolvido por {self.nome}.")
+        else:
+            print(f"{self.nome} não tem o livro {livro.titulo}.")
+
+class Biblioteca:
+    def __init__(self):
+        self.livros = []
+        self.usuarios = []
+
+    def adicionar_livro(self, livro):
+        self.livros.append(livro)
+
+    def cadastrar_usuario(self, usuario):
+        self.usuarios.append(usuario)
+
+    def listar_livros(self):
+        print("Livros disponíveis e emprestados:")
+        for livro in self.livros:
+            print(f"{livro.titulo} ({livro.status})")
+
+    def listar_livros_emprestados_usuario(self, usuario):
+        print(f"Livros emprestados para {usuario.nome}:")
+        for livro in usuario.livros_emprestados:
+            print(livro.titulo)

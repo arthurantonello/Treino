@@ -1,0 +1,65 @@
+Desafio: Sistema de Gerenciamento de Biblioteca
+Neste desafio, você vai criar um sistema de gerenciamento de biblioteca utilizando conceitos de orientação a objetos em Python.
+
+Requisitos:
+Classes e Objetos:
+
+    Livro: Cada livro tem um título, autor e status (se está disponível ou emprestado).
+
+    Usuário: Cada usuário tem um nome, um número de identificação e uma lista de livros emprestados.
+
+    Biblioteca: A biblioteca gerencia os livros e usuários. Ela pode adicionar novos livros, cadastrar novos usuários e emprestar livros para usuários.
+
+Funcionalidades:
+
+    O usuário pode adicionar livros à biblioteca (informando título, autor).
+
+    O usuário pode registrar um novo usuário (informando nome e ID).
+
+    O usuário pode emprestar um livro (deve verificar se o livro está disponível e, se sim, mudar seu status para "emprestado").
+
+    O usuário pode devolver um livro (o livro deve voltar a ser "disponível").
+
+    O sistema pode listar todos os livros disponíveis e emprestados.
+
+    O sistema pode listar os livros emprestados por um usuário.
+
+Passos para implementar:
+    Defina a classe Livro:
+
+    Atributos: título, autor, status (disponível/emprestado).
+
+    Métodos:
+
+    emprestar(): muda o status para "emprestado".
+
+    devolver(): muda o status para "disponível".
+
+    Defina a classe Usuario:
+
+    Atributos: nome, ID, lista de livros emprestados.
+
+    Métodos:
+
+    emprestar_livro(livro): adiciona um livro à lista de livros emprestados e chama o método emprestar() do livro.
+
+    devolver_livro(livro): remove um livro da lista de livros emprestados e chama o método devolver() do livro.
+
+    Defina a classe Biblioteca:
+
+    Atributos: lista de livros, lista de usuários.
+
+Métodos:
+
+    adicionar_livro(livro): adiciona um livro à biblioteca.
+
+    cadastrar_usuario(usuario): adiciona um usuário à biblioteca.
+
+    listar_livros(): lista todos os livros na biblioteca, separando os disponíveis e os emprestados.
+
+    listar_livros_emprestados_usuario(usuario): lista os livros emprestados por um usuário.
+
+Tarefa adicional (opcional):
+    Método de pesquisa: Adicionar um método que permite pesquisar livros por título ou autor.
+
+    Limitar empréstimos: Adicionar uma restrição para o número de livros que um usuário pode emprestar.
