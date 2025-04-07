@@ -14,7 +14,7 @@ def cadastrar_produto():
 def atualizar_quantidade():
     codigo = input('Qual código deseja alterar a quantidade? ')
     if codigo in produtos:
-        print(f'A quantidade atual é de {produtos[codigo]['quantidade']}')
+        print(f'A quantidade atual é de {produtos[codigo]["quantidade"]}')
         quantidade = input('Qual quantidade deseja inserir? ')
         produtos[codigo]['quantidade']= quantidade
         print(f'Quantidade alterada para {quantidade} com sucesso')
@@ -35,8 +35,8 @@ def exibir_estoque():
         return
     for codigo, produto in produtos.items():
         print(f'Código: {codigo}')
-        print(f'Produto: {produto['nome']}')
-        print(f'Quantidade: {produto['quantidade']}\n')
+        print(f'Produto: {produto["nome"]}')
+        print(f'Quantidade: {produto["quantidade"]}\n')
 
 
 while entrada != 5:
