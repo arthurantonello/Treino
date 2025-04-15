@@ -12,8 +12,8 @@ def forcaSenha(senha):
         print('Insira ao menos 8 caracteres')
         senha_forte = False
     if not any(char.isdigit() for char in senha):
-         print('Insira ao menos um número')
-         senha_forte = False
+        print('Insira ao menos um número')
+        senha_forte = False
     if senha.lower() == senha:
         print('Digite ao menos uma letra maíscula')
         senha_forte = False

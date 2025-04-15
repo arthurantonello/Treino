@@ -1,0 +1,29 @@
+Crie uma classe chamada Pet, que represente um animal de estimação no petshop. Cada pet deve ter as seguintes propriedades:
+
+nome (string)
+
+tipo (string: ex: "cachorro", "gato")
+
+idade (inteiro)
+
+vacinado (booleano)
+
+🚀 Requisitos:
+Crie o método __init__ para inicializar os atributos.
+
+Crie um método chamado descrever() que imprime uma descrição do pet.
+
+Crie um método chamado vacinar() que muda o estado de vacinado para True, e imprime uma mensagem como: "Rex foi vacinado!" (caso ainda não tenha sido vacinado).
+
+Crie uma segunda classe chamada Petshop que gerencia vários pets:
+
+Deve ter um atributo lista_pets (lista de objetos Pet).
+
+Deve ter um método adicionar_pet(pet) que adiciona um novo pet.
+
+Deve ter um método listar_pets() que imprime todos os pets cadastrados.
+
+Deve ter um método vacinar_todos() que vacina todos os pets que ainda não foram vacinados.
+
+💡 Desafio extra (opcional):
+Adicione uma função que calcula a média de idade dos pets cadastrados.
