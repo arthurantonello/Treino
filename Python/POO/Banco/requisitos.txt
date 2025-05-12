@@ -1,0 +1,56 @@
+Requisitos:
+Classe Cliente:
+
+    Atributos: nome, cpf, data_nascimento, endereco.
+
+    Método: __str__() (exibe informações do cliente).
+
+Classe ContaBancaria:
+
+    Atributos:
+
+        numero_conta (gerado automaticamente),
+
+        cliente (objeto da classe Cliente),
+
+        saldo,
+
+        tipo_conta (poupança ou corrente),
+
+        limite_saque (R$500 - corrente / R$1000 - poupança)
+
+    Métodos:
+
+        depositar(valor),
+
+        sacar(valor) (não pode exceder o saldo + limite),
+
+        transferir(outra_conta, valor),
+
+        consultar_saldo(),
+
+        __str__().
+
+Classe Banco:
+
+    Atributos: contas (lista de contas), clientes (lista de clientes).
+
+    Métodos:
+
+        cadastrar_cliente(cliente),
+
+        criar_conta(cliente, tipo_conta),
+
+        buscar_conta(numero_conta),
+
+        gerar_relatorio_contas(),
+
+        calcular_total_depositado().
+
+Regras de Negócio:
+
+Cada cliente pode ter até 2 contas (uma poupança e uma corrente).
+
+Saques não podem exceder o limite diário (R$500 - corrente / R$1000 - poupança)
+
+Transferências só são permitidas se a conta de origem tiver saldo suficiente.

@@ -62,7 +62,6 @@ def cadastrar_usuario():
 
 def adicionar_tarefa(chave):
     tarefa = input('Insira a tarefa para adicionar: ')
-    print('Digite a data da tarefa no formato DD-MM-YYYY,')
     data_str = input('Digite a data da tarefa no formato DD-MM-YYYY,\nou aperte enter para a data ser hoje: ')
     # Se não foi informada data, a padrão é instaurada e logo é formatado em ambas situações
     if not data_str:

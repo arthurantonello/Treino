@@ -1,0 +1,45 @@
+# Desafio: Modelagem de Veículos com Diferentes Tipos de Propulsão
+Você trabalha para uma empresa de transporte que está modelando diferentes tipos de veículos. Sua tarefa é criar um sistema de classes que represente veículos com diferentes mecanismos de propulsão, seguindo estas especificações:
+
+Classe Base Veiculo:
+    Atributos comuns:
+        marca (string)
+        modelo (string)
+        ano (int)
+
+    Métodos:
+        exibir_informacoes() (abstrato)
+        ligar() (implementação base que retorna "Veículo ligado")
+        desligar() (implementação base que retorna "Veículo desligado")
+
+Subclasses de Primeiro Nível:
+
+    VeiculoCombustao (herda de Veiculo):
+        Novo atributo: capacidade_tanque (float)
+        Sobrescreve exibir_informacoes() para incluir dados específicos
+        Novo método: abastecer(litros) que atualiza o tanque
+
+    VeiculoEletrico (herda de Veiculo):
+        Novo atributo: autonomia_bateria (float)
+        Sobrescreve exibir_informacoes() para incluir dados específicos
+        Novo método: carregar_bateria(porcentagem) que atualiza a autonomia
+
+Subclasses Específicas:
+
+    Carro (herda de VeiculoCombustao):
+        Novo atributo: numero_portas (int)
+        Sobrescreve ligar() com mensagem específica para carros
+
+    Moto (herda de VeiculoCombustao):
+        Novo atributo: cilindradas (int)
+        Sobrescreve desligar() com mensagem específica para motos
+
+    CaminhaoEletrico (herda de VeiculoEletrico):
+        Novo atributo: capacidade_carga (float)
+        Sobrescreve exibir_informacoes() para incluir todos os dados
+
+Requisitos Adicionais:
+
+    Use o módulo abc para garantir que exibir_informacoes() seja abstrato
+    Implemente validações nos métodos (ex: não permitir abastecer além da capacidade do tanque)
+    Crie uma função frota_empresa() que instancie diferentes veículos e demonstre o polimorfismo chamando exibir_informacoes() para cada um
