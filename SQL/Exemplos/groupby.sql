@@ -20,3 +20,8 @@ SELECT ProductID, COUNT(ProductID) AS 'Contagem',
 AVG(OrderQty) AS 'Média'
 FROM Production.WorkOrder
 GROUP BY ProductID;
+
+-- Objetivo: Calcule a média de UnitPrice por SupplierID
+SELECT SupplierID, AVG(UnitPrice) AS Média
+FROM Products
+GROUP BY SupplierID
