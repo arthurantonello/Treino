@@ -124,11 +124,145 @@ WHERE Products.UnitPrice = (
 	FROM Products
 	WHERE Products.ProductName = 'Sasquatch Ale')
 
---8. Clientes com pedidos acima da média geral de valores
---Liste os CustomerID e CompanyName dos clientes que fizeram pelo menos um pedido com valor total (soma de UnitPrice * Quantity) acima da média de todos os pedidos.
+-- Clientes com pedidos acima da média geral de valores
+-- Liste os CustomerID e CompanyName dos clientes que fizeram pelo menos um pedido com valor total (soma de UnitPrice * Quantity) acima da média de todos os pedidos.
 
---9. Produtos cujo fornecedor vende apenas esse produto
---Encontre os ProductName e SupplierID dos produtos cujo fornecedor vende apenas esse único produto.
+SELECT DISTINCT
+	Customers.CustomerID,
+	Customers.CompanyName
+FROM Customers
+	INNER JOIN Orders
+	ON Customers.CustomerID = Orders.CustomerID
+WHERE (
+	SELECT 
+		SUM([Order Details].UnitPrice * [Order Details].Quantity) AS Total
+	FROM [Order Details]
+	WHERE [Order Details].OrderID = Orders.OrderID) > (
+		SELECT 
+			AVG(Total)
+		FROM (
+			SELECT 
+				SUM([Order Details].UnitPrice * [Order Details].Quantity) AS Total
+			FROM [Order Details]
+			GROUP BY [Order Details].OrderID) AS SubTotals)
 
---10. Categorias cujos produtos nunca foram vendidos
---Liste os CategoryID e CategoryName das categorias cujos produtos nunca apareceram em um pedido.
+
+-- Produtos cujo fornecedor vende apenas esse produto
+-- Encontre os ProductName e SupplierID dos produtos cujo fornecedor vende apenas esse único produto.
+
+SELECT 
+	ProductName,
+	SupplierID
+FROM Products
+WHERE SupplierID IN (
+    SELECT 
+		SupplierID
+    FROM Products
+    GROUP BY SupplierID
+    HAVING COUNT(*) = 1
+);
+
+-- Categorias sem produtos
+-- Liste os nomes das categorias que não têm nenhum produto associado.
+
+SELECT
+	*
+FROM Categories
+WHERE Categories.CategoryID NOT IN (
+	SELECT CategoryID
+	FROM Products
+	WHERE Products.CategoryID IS NOT NULL)
+
+-- Exiba o ID do pedido e o ID do cliente para todos os pedidos realizados em 1997
+-- cujo valor de frete seja maior que a média de frete de todos os pedidos.
+
+SELECT
+	Orders.OrderID,
+	Orders.CustomerID
+FROM 
+	Orders
+WHERE 
+	YEAR(Orders.OrderDate) = 1997
+	AND Orders.Freight > (
+		SELECT 
+			AVG(Orders.Freight)
+		FROM Orders)
+
+-- Apresente o ID e o nome de todos os produtos cujo preço unitário seja maior que o preço unitário médio de todos os produtos da tabela.
+
+SELECT
+	Products.ProductID,
+	Products.ProductName
+FROM 
+	Products
+WHERE 
+	Products.UnitPrice > (
+		SELECT 
+			AVG(Products.UnitPrice)
+		FROM Products)
+
+-- Mostre o CustomerID de clientes que tenham feito mais pedidos do que
+-- a média de pedidos por cliente.
+
+SELECT
+    CustomerID,
+    TotalOrders
+FROM (
+    SELECT
+        CustomerID,
+        COUNT(*) AS TotalOrders
+    FROM
+        Orders
+    GROUP BY
+        CustomerID
+) AS t
+WHERE
+    TotalOrders > (
+        SELECT AVG(TotalPedidos)
+        FROM (
+            SELECT COUNT(*) AS TotalPedidos
+            FROM Orders
+            GROUP BY CustomerID
+        ) AS sub
+    );
+
+-- Exiba o nome do produto e o nome da categoria para produtos cujo preço seja maior
+-- do que a média de preços da categoria a que pertencem.
+
+SELECT
+	Products.ProductName,
+	Categories.CategoryName
+FROM 
+	Products
+	INNER JOIN Categories
+		ON Products.CategoryID = Categories.CategoryID
+WHERE
+	Products.UnitPrice > (
+			SELECT
+				AVG(Products.UnitPrice)
+			FROM 
+				Products
+			WHERE Products.CategoryID = Categories.CategoryID)
+
+
+-- Ver a média de preço por categoria para entender melhor
+SELECT
+    CategoryID,
+    AVG(UnitPrice) AS MediaPreco
+FROM
+    Products
+GROUP BY
+    CategoryID;
+
+
+-- Ver os produtos com seu preço e a média da categoria ao lado
+SELECT
+    Products.ProductName,
+    Products.UnitPrice,
+    Products.CategoryID,
+    (
+        SELECT AVG(UnitPrice)
+        FROM Products
+        WHERE CategoryID = Products.CategoryID
+    ) AS MediaDaCategoria
+FROM Products;

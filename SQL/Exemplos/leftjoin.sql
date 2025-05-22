@@ -256,3 +256,139 @@ FROM Customers
 	LEFT JOIN Orders
 	ON Customers.CustomerID = Orders.CustomerID
 ORDER BY Orders.OrderID
+
+-- Categorias sem produtos
+-- Liste os nomes das categorias que não têm nenhum produto associado.
+
+SELECT *
+FROM Categories
+	LEFT JOIN Products
+	ON Categories.CategoryID = Products.CategoryID
+WHERE Products.CategoryID IS NULL
+
+--  Regiões com seus funcionários
+-- Liste todas as regiões, com os nomes dos funcionários que atuam nelas. Inclua as regiões mesmo que não tenham nenhum funcionário.
+
+SELECT
+	Region.RegionDescription,
+	CONCAT(Employees.FirstName, ' ', Employees.LastName) Funcionario
+FROM Region
+	LEFT JOIN Territories
+	ON Region.RegionID = Territories.RegionID
+	LEFT JOIN EmployeeTerritories
+	ON Territories.TerritoryID = EmployeeTerritories.TerritoryID
+	LEFT JOIN Employees
+	ON EmployeeTerritories.EmployeeID = Employees.EmployeeID
+GROUP BY 
+	Region.RegionDescription, 
+	CONCAT(Employees.FirstName, ' ', Employees.LastName)
+
+-- Produtos com e sem vendas
+-- Liste todos os produtos, com o total de unidades vendidas de cada um (se não vendeu nada, mostrar 0 ou NULL).
+
+SELECT
+	Products.ProductName,
+	SUM([Order Details].Quantity) AS Quantidade
+FROM Products
+	LEFT JOIN [Order Details]
+	ON Products.ProductID = [Order Details].ProductID
+GROUP BY Products.ProductName
+ORDER BY Quantidade DESC
+
+-- Para cada funcionário, exiba o ID do funcionário e o nome do território associado,
+-- incluindo funcionários que não pertençam a nenhum território.
+
+SELECT
+	Employees.EmployeeID,
+	Territories.TerritoryDescription
+FROM 
+	Employees
+	LEFT JOIN EmployeeTerritories
+		ON Employees.EmployeeID = EmployeeTerritories.EmployeeID
+	LEFT JOIN Territories
+		ON EmployeeTerritories.TerritoryID = Territories.TerritoryID
+
+
+-- Para o cliente com CustomerID 'ALFKI', liste o ID do pedido, o ID do produto e
+-- a soma das quantidades pedidas nos pedidos em que a quantidade total de um mesmo
+-- produto seja maior ou igual a 2.
+
+
+SELECT
+	Orders.OrderID,
+	[Order Details].ProductID,
+	SUM([Order Details].Quantity) AS TotalPedido
+FROM 
+	Orders
+	LEFT JOIN [Order Details]
+		ON Orders.OrderID = [Order Details].OrderID
+	LEFT JOIN Customers
+		ON Orders.CustomerID = Customers.CustomerID
+WHERE 
+	Customers.CustomerID = 'ALFKI'
+GROUP BY 
+	Orders.OrderID,
+	[Order Details].ProductID
+HAVING 
+	SUM([Order Details].Quantity) >= 2
+ORDER BY 
+	TotalPedido
+
+-- Liste o nome da categoria e a quantidade de produtos que pertencem a ela,
+-- incluindo categorias sem produtos cadastrados.
+
+SELECT
+	Categories.CategoryName,
+	COUNT(Products.ProductID) TotalProdutos
+FROM 
+	Categories
+	LEFT JOIN Products
+		ON Categories.CategoryID = Products.CategoryID
+GROUP BY
+	Categories.CategoryName
+
+-- Liste o nome de cada fornecedor e a quantidade de produtos fornecidos,
+-- exibindo também fornecedores que não possuam produtos.
+
+SELECT
+	Suppliers.CompanyName Fornecedor,
+	COUNT(Products.ProductID) TotalProdutos
+FROM 
+	Suppliers
+	LEFT JOIN Products
+		ON Suppliers.SupplierID = Products.SupplierID
+GROUP BY
+	Suppliers.CompanyName
+
+-- Para cada produto, mostre o ProductName e o número de pedidos em que ele aparece,
+-- incluindo produtos que nunca foram pedidos.
+
+SELECT
+	Products.ProductName,
+	COUNT([Order Details].ProductID) TotalProduto
+FROM
+	Products
+	LEFT JOIN [Order Details]
+		ON Products.ProductID = [Order Details].ProductID
+GROUP BY
+	Products.ProductName,
+	Products.ProductID
+ORDER BY
+	Products.ProductID
+
+
+-- Apresente o nome do fornecedor e a quantidade de produtos descontinuados (Discontinued = 1),
+-- incluindo fornecedores que não tenham nenhum produto descontinuado.
+
+SELECT
+	Suppliers.CompanyName,
+	COUNT(Products.ProductID) ProdutosDescontinuados
+FROM 
+	Suppliers
+	LEFT JOIN Products
+		ON Suppliers.SupplierID = Products.SupplierID
+		AND Products.Discontinued = 1
+GROUP BY 
+	Suppliers.CompanyName
+HAVING 
+	COUNT(Products.ProductID) >= 1

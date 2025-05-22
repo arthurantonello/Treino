@@ -307,3 +307,179 @@ WHERE YEAR(Orders.OrderDate) >= 1997
 GROUP BY 
 	Customers.CompanyName
 ORDER BY PrimeiroPedido
+
+--  Funcionários ativos em 1998
+-- Liste os funcionários que realizaram pelo menos um pedido em 1998, com a quantidade de pedidos feitos nesse ano.
+
+SELECT 
+	CONCAT(Employees.FirstName, ' ', Employees.LastName) Funcionario,
+	COUNT(Orders.EmployeeID) AS Quantidade
+FROM Orders
+	INNER JOIN Employees
+	ON Orders.EmployeeID = Employees.EmployeeID
+WHERE YEAR(Orders.OrderDate) = 1998
+GROUP BY CONCAT(Employees.FirstName, ' ', Employees.LastName)
+
+
+-- Liste o nome do país e a quantidade total de pedidos feitos por clientes de cada país,
+-- considerando apenas países com mais de 10 pedidos.
+
+SELECT
+	Customers.Country,
+	COUNT(Orders.OrderID) AS TotalPedidos
+FROM 
+	Customers
+	INNER JOIN Orders
+		ON Customers.CustomerID = Orders.CustomerID
+GROUP BY 
+	Customers.Country
+HAVING 
+	COUNT(Orders.OrderID) > 10
+
+-- Exiba o CustomerID e a quantidade de produtos diferentes que cada cliente já pediu,
+-- considerando apenas os clientes que pediram mais de 3 produtos distintos.
+
+SELECT
+	Orders.CustomerID,
+	COUNT(DISTINCT [Order Details].ProductID) TotalDiferentes
+FROM
+	Orders
+	INNER JOIN [Order Details]
+		ON Orders.OrderID = [Order Details].OrderID
+GROUP BY 
+	Orders.CustomerID
+HAVING COUNT(DISTINCT [Order Details].ProductID) > 3
+ORDER BY
+	TotalDiferentes
+	
+
+-- Liste o nome do produto e o nome do fornecedor para todos os produtos
+-- fornecidos por empresas dos EUA.
+
+--Inverti a ordem e agrupei produtos
+
+SELECT
+	Suppliers.CompanyName Fornecedor,
+	STRING_AGG(Products.ProductName,', ') Produto
+FROM Products
+	INNER JOIN Suppliers
+		ON Products.SupplierID = Suppliers.SupplierID
+WHERE Suppliers.Country = 'USA'
+GROUP BY
+	Suppliers.CompanyName
+
+-- Exiba o ID do pedido e o nome do produto para todos os pedidos feitos
+-- em outubro de 1996.
+
+SELECT
+	[Order Details].OrderID,
+	STRING_AGG([Order Details].ProductID,', ') AS Produtos
+FROM 
+	[Order Details]
+	INNER JOIN Orders
+		ON [Order Details].OrderID = Orders.OrderID
+WHERE YEAR(Orders.OrderDate) = 1996
+	AND MONTH(Orders.OrderDate) = 10
+GROUP BY
+	[Order Details].OrderID
+
+
+-- Liste o nome do produto, o nome do fornecedor e o preço unitário dos produtos
+-- fornecidos por empresas localizadas no Reino Unido.
+
+SELECT
+	Products.ProductName,
+	Suppliers.CompanyName,
+	Products.UnitPrice
+FROM 
+	Products
+	INNER JOIN Suppliers
+		ON Products.SupplierID = Suppliers.SupplierID
+WHERE Suppliers.Country = 'UK'
+
+
+-- Exiba o nome do produto e o nome da categoria para produtos cujo preço seja maior
+-- do que a média de preços da categoria a que pertencem.
+
+SELECT
+	Products.ProductName,
+	Categories.CategoryName
+FROM 
+	Products
+	INNER JOIN Categories
+		ON Products.CategoryID = Categories.CategoryID
+WHERE
+	Products.UnitPrice > (
+			SELECT
+				AVG(Products.UnitPrice)
+			FROM 
+				Products
+			WHERE Products.CategoryID = Categories.CategoryID)
+
+
+-- Ver a média de preço por categoria para entender melhor
+SELECT
+    CategoryID,
+    AVG(UnitPrice) AS MediaPreco
+FROM
+    Products
+GROUP BY
+    CategoryID;
+
+
+-- Ver os produtos com seu preço e a média da categoria ao lado
+SELECT
+    Products.ProductName,
+    Products.UnitPrice,
+    Products.CategoryID,
+    (
+        SELECT AVG(UnitPrice)
+        FROM Products
+        WHERE CategoryID = Products.CategoryID
+    ) AS MediaDaCategoria
+FROM Products;
+
+-- Liste o nome do produto e o nome do fornecedor para todos os produtos
+-- fornecidos por empresas dos EUA.
+
+--Inverti a ordem e agrupei produtos
+
+SELECT
+	Suppliers.CompanyName Fornecedor,
+	STRING_AGG(Products.ProductName,', ') Produto
+FROM Products
+	INNER JOIN Suppliers
+		ON Products.SupplierID = Suppliers.SupplierID
+WHERE Suppliers.Country = 'USA'
+GROUP BY
+	Suppliers.CompanyName
+
+-- Liste o CustomerID e o país de envio (ShipCountry) de todos os pedidos
+-- cujo ShipCountry seja diferente do Country do cliente.
+
+SELECT
+	Orders.CustomerID,
+	Orders.ShipCountry
+FROM 
+	Orders
+	INNER JOIN Customers
+		ON Orders.CustomerID = Customers.CustomerID
+WHERE Orders.ShipCountry = Customers.Country
+
+
+-- Exiba o nome da categoria e a média de UnitPrice dos produtos de cada categoria,
+-- mostrando apenas as categorias cuja média de preço seja maior do que a média geral de todos os produtos.
+
+SELECT
+	Categories.CategoryName,
+	AVG(Products.UnitPrice) MediaCategoria
+FROM
+	Products
+	INNER JOIN Categories
+		ON Products.CategoryID = Categories.CategoryID
+GROUP BY Categories.CategoryName
+HAVING AVG(Products.UnitPrice) > (
+	SELECT 
+		AVG(UnitPrice)
+	FROM 
+		Products)
