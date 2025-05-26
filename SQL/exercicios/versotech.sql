@@ -500,3 +500,256 @@ GROUP BY
 	PCUSUARI.TIPOVEND
 
 
+-- Liste o nome do cliente, número do pedido e valor total, incluindo clientes que ainda não fizeram pedidos.
+
+SELECT
+	PCCLIENT.CLIENTE,
+	PCPEDC.NUMPED,
+	PCPEDC.VLTOTAL
+FROM
+	WINT.PCCLIENT
+	LEFT JOIN WINT.PCPEDC
+		ON PCCLIENT.CODCLI = PCPEDC.CODCLI
+ORDER BY
+	PCCLIENT.CLIENTE,
+	PCPEDC.NUMPED;
+
+
+-- Mostre os nomes dos representantes e seus supervisores, mas traga também os representantes que ainda não possuem supervisor atribuído.
+
+SELECT
+	PCUSUARI.NOME AS NOME_REPRESENTANTE,
+	PCSUPERV.NOME AS NOME_SUPERVISOR
+FROM
+	WINT.PCUSUARI
+	LEFT JOIN WINT.PCSUPERV
+		ON PCUSUARI.CODSUPERVISOR = PCSUPERV.CODSUPERVISOR;
+
+
+-- Exiba os produtos com suas descrições e os nomes de seus fornecedores, mas apenas os produtos que possuem fornecedor cadastrado.
+
+SELECT
+	PCPRODUT.DESCRICAO,
+	PCFORNEC.FORNECEDOR
+FROM 
+	WINT.PCPRODUT
+	INNER JOIN WINT.PCFORNEC
+		ON PCPRODUT.CODFORNEC = PCFORNEC.CODFORNEC;
+
+-- Liste os nomes dos clientes e os nomes dos fornecedores que compartilham o mesmo CEP..
+
+
+SELECT
+	PCCLIENT.CLIENTE,
+	PCFORNEC.FORNECEDOR,
+	PCCLIENT.CEPENT
+FROM
+	WINT.PCCLIENT
+	JOIN WINT.PCFORNEC
+		ON PCCLIENT.CEPENT = PCFORNEC.CEP;
+
+-- Mostre o número do pedido, a data e o nome do representante que o registrou.
+
+SELECT
+	PCPEDC.NUMPED,
+	PCPEDC."DATA",
+	PCUSUARI.NOME
+FROM
+	WINT.PCPEDC
+	INNER JOIN WINT.PCUSUARI
+		ON PCPEDC.CODUSUR = PCUSUARI.CODUSUR;
+
+-- Liste o nome dos produtos e a quantidade total vendida, mesmo que algum produto ainda não tenha sido vendido, ordenando pelo mais vendido primeiro.
+
+SELECT
+	PCPRODUT.DESCRICAO,
+	SUM(PCPEDI.QT) AS QTD_VENDIDA
+FROM	
+	WINT.PCPRODUT
+	LEFT JOIN WINT.PCPEDI
+		ON PCPRODUT.CODPROD = PCPEDI.CODPROD
+GROUP BY
+	PCPRODUT.DESCRICAO
+ORDER BY
+	QTD_VENDIDA DESC;
+
+
+-- Mostre todos os fornecedores e a quantidade de produtos cadastrados para cada um deles.
+
+SELECT
+	PCFORNEC.FORNECEDOR,
+	LISTAGG(PCPRODUT.CODPROD,', ') AS PRODUTOS,
+	SUM(PCPEDI.QT) AS QTD_TOTAL
+FROM
+	WINT.PCFORNEC
+	INNER JOIN WINT.PCPRODUT
+		ON PCFORNEC.CODFORNEC = PCPRODUT.CODFORNEC
+GROUP BY
+	PCFORNEC.FORNECEDOR;
+
+
+-- Liste os pedidos feitos em março de 2024, com o nome do cliente e o número total de itens no pedido.
+
+SELECT
+	PCCLIENT.CLIENTE,
+	SUM(PCPEDI.QT) AS QTD_ITENS
+FROM
+	WINT.PCPEDC
+	INNER JOIN WINT.PCCLIENT
+		ON PCPEDC.CODCLI = PCCLIENT.CODCLI
+	INNER JOIN WINT.PCPEDI
+		ON PCPEDC.NUMPED = PCPEDI.NUMPED
+WHERE
+	PCPEDC."DATA" BETWEEN '01/03/2024' AND '31/03/2024'
+GROUP BY
+	PCPEDC.NUMPED,
+	PCCLIENT.CLIENTE;
+
+-- Apresente os nomes dos produtos e os nomes dos representantes que venderam esses produtos, sem excluir produtos que ainda não tenham sido vendidos.
+
+SELECT
+	PCPRODUT.DESCRICAO,
+	PCUSUARI.NOME
+FROM
+	WINT.PCPRODUT
+	LEFT JOIN WINT.PCPEDI
+		ON PCPRODUT.CODPROD = PCPEDI.CODPROD
+	LEFT JOIN WINT.PCPEDC
+		ON PCPEDI.NUMPED = PCPEDC.NUMPED
+	LEFT JOIN WINT.PCUSUARI
+		ON PCPEDC.CODUSUR = PCUSUARI.CODUSUR;
+
+-- Liste os produtos com embalagem igual a 'CX' e que tenham peso líquido entre 0.5 e 1.5 kg, exibindo código, descrição e unidade.
+
+SELECT
+	PCPRODUT.CODPROD,
+	PCPRODUT.DESCRICAO,
+	PCPRODUT.EMBALAGEM,
+	PCPRODUT.PESOLIQ
+FROM
+	WINT.PCPRODUT
+WHERE 
+	PCPRODUT.PESOLIQ BETWEEN 0.5 AND 1.5
+	AND PCPRODUT.EMBALAGEM = 'CX';
+
+-- Mostre os nomes dos clientes que não possuem e-mail cadastrado.
+
+SELECT
+	PCCLIENT.CLIENTE
+FROM
+	WINT.PCCLIENT
+WHERE
+	PCCLIENT.EMAIL IS NULL;
+
+-- Traga os nomes dos representantes e o total de pedidos que cada um registrou, mostrando apenas quem realizou mais de 10 pedidos.
+
+SELECT
+	PCUSUARI.NOME,
+	COUNT(PCPEDC.NUMPED) AS QTD_PEDIDOS
+FROM
+	WINT.PCUSUARI
+	INNER JOIN WINT.PCPEDC
+		ON PCUSUARI.CODUSUR = PCPEDC.CODUSUR
+GROUP BY
+	PCUSUARI.NOME
+HAVING
+	COUNT(PCPEDC.NUMPED) > 10;
+	
+
+-- Exiba os fornecedores da cidade de 'PORTO ALEGRE' que compartilham o mesmo CEP com algum cliente.
+
+SELECT DISTINCT
+	PCFORNEC.FORNECEDOR
+FROM
+	WINT.PCFORNEC
+	INNER JOIN WINT.PCCLIENT
+	ON PCFORNEC.CEP = PCCLIENT.CEPCOB
+WHERE
+	PCFORNEC.CIDADE = 'Porto Alegre';
+
+
+-- Apresente os produtos que nunca foram vendidos (nenhuma linha correspondente na tabela de itens de pedido).
+
+SELECT
+	PCPRODUT.CODPROD,
+    PCPRODUT.DESCRICAO,
+    PCPRODUT.UNIDADE
+FROM
+	WINT.PCPRODUT
+	LEFT JOIN WINT.PCPEDI
+		ON PCPRODUT.CODPROD = PCPEDI.CODPROD
+		WHERE PCPEDI.CODPROD IS NULL;
+
+-- Liste os nomes dos clientes que fizeram pedidos em janeiro de 2024, junto com a data do pedido.
+
+SELECT
+	PCCLIENT.CLIENTE,
+	PCPEDC."DATA"
+FROM
+	WINT.PCCLIENT
+	INNER JOIN WINT.PCPEDC
+		ON PCCLIENT.CODCLI = PCPEDC.CODCLI
+		WHERE PCPEDC."DATA" BETWEEN '01/01/2024' AND '31/01/2024'
+ORDER BY
+	PCPEDC."DATA",
+	PCCLIENT.CLIENTE;
+
+
+-- Mostre o número do pedido, o nome do cliente e a quantidade total de itens vendidos no pedido, apenas para pedidos com mais de 5 itens.
+
+SELECT
+	PCPEDC.NUMPED,
+	PCCLIENT.CLIENTE,
+	SUM(PCPEDI.QT) QTD_ITENS_VENDIDOS
+FROM
+	WINT.PCPEDC
+	INNER JOIN WINT.PCCLIENT
+		ON PCPEDC.CODCLI = PCCLIENT.CODCLI
+	INNER JOIN WINT.PCPEDI
+		ON PCPEDC.NUMPED = PCPEDI.NUMPED
+GROUP BY
+	PCPEDC.NUMPED,
+	PCCLIENT.CLIENTE
+HAVING
+	SUM(PCPEDI.QT) > 5
+ORDER BY
+	PCPEDC.NUMPED,
+	PCCLIENT.CLIENTE;
+
+-- Encontre todos os produtos vendidos em março de 2024 por representantes que têm o tipo de vendedor igual a 'R'.
+
+SELECT
+	PCPEDI.CODPROD,
+	PCUSUARI.TIPOVEND
+FROM
+	WINT.PCPEDI
+	LEFT JOIN WINT.PCUSUARI
+		ON PCPEDI.CODUSUR = PCUSUARI.CODUSUR
+WHERE
+	PCPEDI."DATA" BETWEEN '01/03/2024' AND '31/03/2024'
+	AND
+		PCUSUARI.TIPOVEND = 'R';
+
+
+-- Exiba o nome dos representantes que nunca realizaram nenhum pedido.
+
+SELECT
+	PCUSUARI.NOME
+FROM
+	WINT.PCUSUARI
+	LEFT JOIN WINT.PCPEDC
+		ON PCUSUARI.CODUSUR = PCPEDC.CODUSUR
+		WHERE
+			PCPEDC.CODUSUR IS NULL
+
+-- Mostre os nomes dos produtos e o nome dos fornecedores, incluindo também os produtos que ainda não têm fornecedor definido.
+			
+SELECT
+	PCPRODUT.DESCRICAO,
+	PCFORNEC.CODFORNEC
+FROM
+	WINT.PCPRODUT
+	LEFT JOIN WINT.PCFORNEC
+		ON PCPRODUT.CODFORNEC = PCFORNEC.CODFORNEC
+ORDER BY
+	PCFORNEC.CODFORNEC;

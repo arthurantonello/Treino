@@ -266,3 +266,25 @@ SELECT
         WHERE CategoryID = Products.CategoryID
     ) AS MediaDaCategoria
 FROM Products;
+
+-- Mostre o ProductName e o nome do fornecedor para produtos da categoria 'Beverages'
+-- cujo UnitPrice seja maior que a média de UnitPrice de todos os produtos dessa categoria.
+
+SELECT
+	Products.ProductName,
+	Suppliers.CompanyName Fornecedor
+FROM 
+	Products
+	INNER JOIN Categories
+		ON Products.CategoryID = Categories.CategoryID
+	INNER JOIN Suppliers
+		ON Products.SupplierID = Suppliers.SupplierID
+WHERE 
+	Categories.CategoryName = 'Beverages'
+	AND Products.UnitPrice > (
+		SELECT
+			AVG(Products.UnitPrice)
+		FROM
+			Products
+		WHERE 
+			Products.CategoryID = Categories.CategoryID)

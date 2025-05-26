@@ -392,3 +392,19 @@ GROUP BY
 	Suppliers.CompanyName
 HAVING 
 	COUNT(Products.ProductID) >= 1
+
+
+-- Retorne o EmployeeID e o número de territórios associados a cada funcionário,
+-- listando também funcionários que não estejam associados a nenhum território.
+
+SELECT
+	Employees.EmployeeID,
+	COUNT(EmployeeTerritories.TerritoryID) TotalTerritorios
+FROM Employees
+	LEFT JOIN EmployeeTerritories
+		ON Employees.EmployeeID = EmployeeTerritories.EmployeeID
+GROUP BY
+	Employees.EmployeeID
+
+
+
