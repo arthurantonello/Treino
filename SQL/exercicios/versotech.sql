@@ -753,3 +753,383 @@ FROM
 		ON PCPRODUT.CODFORNEC = PCFORNEC.CODFORNEC
 ORDER BY
 	PCFORNEC.CODFORNEC;
+
+-- Traga os produtos que somaram mais de 200 unidades vendidas no total (QT), mostrando o nome e a quantidade total.
+
+SELECT
+	PCPRODUT.DESCRICAO,
+	SUM(PCPEDI.QT) QTD_VENDIDA
+FROM
+	WINT.PCPEDI
+	INNER JOIN WINT.PCPRODUT
+		ON PCPEDI.CODPROD = PCPRODUT.CODPROD
+GROUP BY
+	PCPRODUT.DESCRICAO
+HAVING
+	SUM(PCPEDI.QT) > 200;
+
+-- Liste os produtos que aparecem em pedidos diferentes de pelo menos 2 clientes distintos.
+
+
+SELECT
+	PCPEDI.CODPROD,
+	COUNT(DISTINCT PCPEDI.CODCLI) AS QTD_CLIENTE
+FROM
+	WINT.PCPEDI
+GROUP BY
+	PCPEDI.CODPROD
+HAVING
+	COUNT(DISTINCT PCPEDI.CODCLI) > 2
+ORDER BY
+	PCPEDI.CODPROD;
+
+-- Exiba os pedidos cujo valor total (VLTOTAL) está acima da média de todos os pedidos no sistema.
+
+SELECT
+	PCPEDC.NUMPED,
+	PCPEDC.VLTOTAL
+FROM
+	WINT.PCPEDC
+WHERE PCPEDC.VLTOTAL > (
+		SELECT
+			AVG(PCPEDC.VLTOTAL)
+		FROM
+			WINT.PCPEDC);
+
+
+-- Mostre os 5 produtos mais vendidos em quantidade, com a descrição e nome do fornecedor correspondente.
+
+SELECT
+	PCPEDI.CODPROD,
+	PCPRODUT.DESCRICAO,
+	PCFORNEC.FORNECEDOR,
+	SUM(PCPEDI.QT) AS QTD_VENDIDA
+FROM
+	WINT.PCPEDI
+	INNER JOIN WINT.PCPRODUT
+		ON PCPEDI.CODPROD = PCPRODUT.CODPROD
+	INNER JOIN WINT.PCFORNEC
+		ON PCPRODUT.CODFORNEC = PCFORNEC.CODFORNEC
+GROUP BY
+	PCPEDI.CODPROD,
+	PCPRODUT.DESCRICAO,
+	PCFORNEC.FORNECEDOR
+ORDER BY
+	QTD_VENDIDA DESC
+FETCH FIRST 5 ROWS ONLY;
+
+-- Liste os pedidos em que o total de produtos vendidos tenha peso líquido superior a 20 kg.
+
+
+SELECT
+	PCPEDI.NUMPED,
+	SUM(PCPRODUT.PESOLIQ * PCPEDI.QT) AS SOMA_PESOLIQ
+FROM
+	WINT.PCPEDI
+	INNER JOIN WINT.PCPRODUT
+		ON PCPEDI.CODPROD = PCPRODUT.CODPROD
+GROUP BY
+	PCPEDI.NUMPED
+HAVING
+	SUM(PCPRODUT.PESOLIQ * PCPEDI.QT) > 20
+ORDER BY
+	PCPEDI.NUMPED;
+
+
+-- Mostre os pedidos em que a quantidade total de unidades vendidas (soma de QT) ultrapassou 50.
+
+SELECT
+	PCPEDI.NUMPED,
+	SUM(PCPEDI.QT) QTD_VENDIDA
+FROM
+	WINT.PCPEDI
+GROUP BY
+	PCPEDI.NUMPED
+HAVING
+	SUM(PCPEDI.QT) > 50
+FETCH FIRST 10 ROWS ONLY;
+
+
+-- Encontre os clientes que fizeram pedidos em março de 2024, mas não fizeram nenhum em fevereiro de 2024.
+
+
+SELECT
+	PCCLIENT.CLIENTE,
+	PCPEDC."DATA"
+FROM
+	WINT.PCPEDC
+	INNER JOIN WINT.PCCLIENT
+		ON PCPEDC.CODCLI = PCCLIENT.CODCLI
+WHERE
+	PCPEDC."DATA" BETWEEN '01/03/2024' AND '31/03/2024'
+	AND PCPEDC."DATA" NOT BETWEEN '01/02/2024' AND '28/02/2024';
+	
+-- Liste os 3 produtos com maior volume de vendas (em unidades QT), mas cuidado: 
+-- alguns produtos podem aparecer em múltiplos pedidos — considere a soma total correta.
+
+SELECT
+	PCPRODUT.DESCRICAO,
+	SUM(PCPEDI.QT) QTD
+FROM
+	WINT.PCPEDI
+	INNER JOIN WINT.PCPRODUT
+		ON PCPEDI.CODPROD = PCPRODUT.CODPROD
+GROUP BY
+	PCPRODUT.DESCRICAO
+ORDER BY
+	QTD DESC
+FETCH FIRST 3 ROWS ONLY;
+
+
+
+-- Mostre os pedidos em que houve mais de um produto com o mesmo código (CODPROD), 
+-- ou seja, repetições de produto no mesmo pedido.
+
+SELECT
+	PCPEDI.NUMPED,
+	PCPEDI.CODPROD,
+	COUNT(PCPEDI.CODPROD) QTD_COMPRADA
+FROM
+	WINT.PCPEDI
+GROUP BY
+	PCPEDI.NUMPED,
+	PCPEDI.CODPROD
+HAVING
+	COUNT(PCPEDI.CODPROD) > 1;
+
+
+-- Liste os produtos que nunca foram vendidos, mas cuidado para não excluir produtos com QT = 0.
+-- Lembre-se: ausência no PCPEDI é diferente de quantidade zerada.
+
+SELECT
+	PCPEDI.CODPROD,
+	PCPEDI.QT
+FROM
+	WINT.PCPRODUT
+	INNER JOIN WINT.PCPEDI
+		ON PCPRODUT.CODPROD = PCPEDI.CODPROD
+		WHERE PCPEDI.CODPROD IS NULL;
+
+
+-- Traga todos os pedidos com valor total acima da média,
+-- mas somente se o pedido tiver mais de 2 itens distintos vendidos.
+
+SELECT
+	PCPEDC.NUMPED,
+	PCPEDC.VLTOTAL,
+	COUNT(DISTINCT )
+FROM
+	WINT.PCPEDC
+	INNER JOIN WINT.PCPEDI
+		ON PCPED 
+WHERE 
+	PCPEDC.VLTOTAL > (
+		SELECT 
+			AVG(PCPEDC.VLTOTAL)
+		FROM
+			WINT.PCPEDC)
+
+-- Você precisa gerar um relatório com os seguintes critérios:
+
+-- 1. Traga os produtos vendidos em 2024 com volume (QT total) entre 100 e 300 unidades.
+-- 2. Para cada produto, exiba: código, nome do produto, total vendido, número de pedidos distintos.
+-- 3. Inclua também o nome do fornecedor vinculado ao produto.
+-- 4. Organize o resultado pelo maior volume vendido primeiro.
+-- 5. Limite o resultado aos 10 primeiros produtos.
+
+-- Tabelas disponíveis: PCPEDI, PCPEDC, PCPRODUT, PCFORNEC.
+
+SELECT
+	PCPEDI.CODPROD 						AS COD_PRODUTO,
+	PCPRODUT.DESCRICAO 					AS NOME_PRODUTO,
+	SUM(PCPEDI.QT) 						AS QT_VENDIDA,
+	COUNT(DISTINCT PCPEDI.NUMPED) 		AS QTD_PEDIDOS,
+	PCFORNEC.FORNECEDOR					AS FORNECEDOR
+FROM
+	WINT.PCPEDC
+	INNER JOIN WINT.PCPEDI 
+		ON PCPEDC.NUMPED = PCPEDI.NUMPED
+	INNER JOIN WINT.PCPRODUT
+		ON PCPEDI.CODPROD = PCPRODUT.CODPROD
+	INNER JOIN WINT.PCFORNEC 
+		ON PCPRODUT.CODFORNEC = PCFORNEC.CODFORNEC
+WHERE
+	EXTRACT(YEAR FROM PCPEDC.DATA) = 2024
+GROUP BY
+	PCPEDI.CODPROD,
+	PCPRODUT.DESCRICAO,
+	PCFORNEC.FORNECEDOR
+HAVING
+	SUM(PCPEDI.QT) BETWEEN 100 AND 300
+ORDER BY
+	SUM(PCPEDI.QT)  DESC
+FETCH FIRST 10 ROWS ONLY;
+
+
+-- O analista precisa de um relatório para entender o desempenho de alguns produtos ao longo de 2024.
+
+-- Ele quer visualizar os produtos que tiveram um volume relevante de vendas no ano, junto com o número de pedidos em que apareceram, e qual fornecedor está vinculado.
+
+-- Ele também quer ver só os principais resultados, ordenados pela quantidade vendida, e não quer ver produtos que só venderam pouco ou apareceram uma única vez.
+
+
+SELECT
+	PCPEDI.CODPROD,
+	PCPRODUT.DESCRICAO,
+	PCFORNEC.FORNECEDOR,
+	SUM(PCPEDI.QT) QTD_VENDIDA,
+	COUNT(DISTINCT PCPEDI.NUMPED) QTD_PEDIDOS
+FROM
+	WINT.PCPEDI
+	INNER JOIN WINT.PCPEDC 
+		ON PCPEDI.NUMPED = PCPEDC.NUMPED
+	INNER JOIN WINT.PCPRODUT
+		ON PCPRODUT.CODPROD = PCPEDI.CODPROD
+	INNER JOIN WINT.PCFORNEC
+		ON PCPRODUT.CODFORNEC = PCFORNEC.CODFORNEC
+WHERE
+	EXTRACT(YEAR FROM PCPEDC.DATA) = 2024
+GROUP BY
+	PCPEDI.CODPROD,
+	PCPRODUT.DESCRICAO,
+	PCFORNEC.FORNECEDOR
+HAVING
+	COUNT(DISTINCT PCPEDI.NUMPED) > 1
+	AND SUM(PCPEDI.QT) > 100
+ORDER BY
+	QTD_VENDIDA DESC;
+
+-- Crie um relatório que traga os produtos vendidos em pedidos,
+-- mostrando o código, nome do produto e a quantidade total vendida (QT).
+-- Além disso, crie uma coluna chamada "CATEGORIA_VENDA" com os seguintes critérios:
+
+-- - Se a soma total vendida for maior que 250 → mostrar 'ALTO'
+-- - Se estiver entre 201 e 250 → mostrar 'MÉDIO'
+-- - Se for até 200 → mostrar 'BAIXO'
+
+-- Ordene do maior para o menor volume vendido.
+-- Use apenas tabelas confiáveis: PCPEDI e PCPRODUT.
+
+SELECT
+	PCPEDI.CODPROD,
+	PCPRODUT.DESCRICAO,
+	SUM(PCPEDI.QT) AS QTD_VENDIDA,
+	CASE
+		WHEN SUM(PCPEDI.QT) > 250 THEN 'ALTO'
+		WHEN SUM(PCPEDI.QT) BETWEEN 201 AND 250 THEN 'MÉDIO'
+		ELSE 'BAIXO'
+	END AS CATEGORIA_VENDA
+FROM
+	WINT.PCPEDI
+	INNER JOIN WINT.PCPRODUT 
+		ON PCPEDI.CODPROD = PCPRODUT.CODPROD
+GROUP BY
+	PCPEDI.CODPROD,
+	PCPRODUT.DESCRICAO
+ORDER BY
+	QTD_VENDIDA DESC;
+
+-- Crie um relatório que mostre o código, nome e embalagem dos produtos,
+-- e uma coluna chamada "TIPO_CAIXA" com os seguintes valores:
+-- - Se a embalagem for 'CX' → mostrar 'Caixa'
+-- - Se for 'UN' ou 'UND' → mostrar 'Unidade Simples'
+-- - Qualquer outro valor → mostrar 'Outro Tipo'
+
+-- Mostre os produtos ordenados pelo nome.
+
+
+SELECT
+	PCPRODUT.CODPROD,
+	PCPRODUT.DESCRICAO,
+	PCPRODUT.EMBALAGEM,
+	CASE
+		WHEN PCPRODUT.EMBALAGEM = 'CX' THEN 'Caixa'
+		WHEN PCPRODUT.EMBALAGEM = 'UN'
+			OR PCPRODUT.EMBALAGEM = 'UND'THEN 'Unidade Simples'
+		ELSE 'Outro tipo'
+	END AS TIPO_EMBALAGEM
+FROM
+	WINT.PCPRODUT
+ORDER BY
+	PCPRODUT.DESCRICAO;
+
+-- ------------------------------------------------------------
+
+-- Gere um relatório com o código e nome dos produtos e uma classificação de peso:
+-- - Se o peso líquido for até 0.2 kg → mostrar 'Leve'
+-- - De 0.21 até 1 kg → mostrar 'Médio'
+-- - Acima de 1 kg → mostrar 'Pesado'
+
+-- Exiba apenas os produtos com peso preenchido e ordene pelo mais pesado primeiro.
+
+
+SELECT
+	PCPRODUT.CODPROD,
+	PCPRODUT.DESCRICAO,
+	PCPRODUT.PESOLIQ,
+	CASE
+		WHEN PCPRODUT.PESOLIQ > 1 THEN 'Pesado'
+		WHEN PCPRODUT.PESOLIQ BETWEEN 0.21 AND 1 THEN 'Médio'
+		ELSE 'LEVE'
+	END AS CLASSIFICACAO_PESO
+FROM
+	WINT.PCPRODUT;
+
+-- ------------------------------------------------------------
+
+-- Liste os produtos vendidos (com base em PCPEDI), exibindo:
+-- código, nome, quantidade total vendida, e uma categoria:
+-- - Até 185 unidades → 'Pouco Procurado'
+-- - De 186 a 230 → 'Popular'
+-- - Acima de 250 → 'Muito Vendido'
+
+-- Mostre os 20 produtos mais vendidos.
+
+SELECT
+	PCPEDI.CODPROD,
+	PCPRODUT.DESCRICAO,
+	SUM(PCPEDI.QT) AS QTD_VENDIDA,
+	CASE
+		WHEN SUM(PCPEDI.QT) > 230 THEN 'Muito vendido'
+		WHEN SUM(PCPEDI.QT) BETWEEN 186 AND 230 THEN 'Popular'
+		ELSE 'Pouco procurado'
+	END AS CATEGORIA
+FROM
+	WINT.PCPEDI
+	INNER JOIN WINT.PCPRODUT
+		ON PCPEDI.CODPROD = PCPRODUT.CODPROD
+GROUP BY
+	PCPEDI.CODPROD,
+	PCPRODUT.DESCRICAO;
+-- ------------------------------------------------------------
+
+-- Crie um relatório de produtos com base na descrição.
+-- Se a descrição contiver 'MOUSE', 'TECLADO' ou 'HEADSET', crie uma coluna chamada "CATEGORIA_PRODUTO":
+-- - Contendo 'MOUSE' → 'Mouse'
+-- - Contendo 'TECLADO' → 'Teclado'
+-- - Contendo 'HEADSET' → 'Headset'
+-- - Caso contrário → 'Outro'
+
+-- Mostre todos os produtos, agrupados por categoria.
+
+SELECT
+	CATEGORIA_PRODUTO,
+	COUNT(CATEGORIA_PRODUTO) AS QTD_CATEGORIA
+FROM (
+	SELECT
+		CASE
+			WHEN PCPRODUT.DESCRICAO LIKE '%MOUSE%' THEN 'Mouse'
+			WHEN PCPRODUT.DESCRICAO LIKE '%TECLADO%' THEN 'Teclado'
+			WHEN PCPRODUT.DESCRICAO LIKE '%HEADSET%' THEN 'Headset'
+			ELSE 'Outro'
+		END AS CATEGORIA_PRODUTO
+	FROM
+		WINT.PCPRODUT
+		)
+GROUP BY
+	CATEGORIA_PRODUTO
+ORDER BY
+	QTD_CATEGORIA DESC;
+
+
+
