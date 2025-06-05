@@ -524,6 +524,7 @@ HAVING
 
 -- Exiba o CustomerID e a quantidade de pedidos cujo valor total (UnitPrice * Quantity) exceda 1000,
 -- considerando apenas clientes que tenham ao menos um pedido assim.
+
 SELECT
 	Total.CustomerID,
 	COUNT(*) TotalPedidos
