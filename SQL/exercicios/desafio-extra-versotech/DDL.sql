@@ -111,3 +111,5 @@ INSERT INTO ITENS_PEDIDO (id_pedido, id_produto, preco_praticado, quantidade) VA
 (3, 3, 27.00, 4),
 (4, 4, 25.00, 8),
 (4, 5, 30.00, 5);
+
+
