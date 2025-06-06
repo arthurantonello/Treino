@@ -13,25 +13,25 @@
      WITH CALCULAR_MEDIA_PEDIDOS AS (
 			  SELECT AVG(PEDIDOS_POR_CLIENTE.QTD_PEDIDOS) 					AS MEDIA_PEDIDOS
 			    FROM (
-	                    SELECT COUNT(SUBPCPEDC.NUMPED) 						AS QTD_PEDIDOS
-	                      FROM WINT.PCPEDC SUBPCPEDC
-	                 GROUP BY SUBPCPEDC.CODCLI
+	                    SELECT COUNT(PCPEDC.NUMPED) 						AS QTD_PEDIDOS
+	                      FROM WINT.PCPEDC
+	                 GROUP BY PCPEDC.CODCLI
 	                ) PEDIDOS_POR_CLIENTE
 		),
 		VERIFICAR_NIVEL_CONFIANCA AS (
 		/* Aqui o ideal seria verificar score e se paga em dia, porém dessa forma já da para ter uma ideia de confiança,
            utilizando a média de pedidos do cliente */
 		      SELECT PCPEDC.CODCLI,
-                     CASE
-                         WHEN COUNT(PCPEDC.NUMPED) 
-                         	 	  >= CALCULAR_MEDIA_PEDIDOS.MEDIA_PEDIDOS
-                         THEN 'ALTA'
-                         WHEN COUNT(PCPEDC.NUMPED) 
-	                         	  BETWEEN CALCULAR_MEDIA_PEDIDOS.MEDIA_PEDIDOS * 0.7 
-	                     			  AND CALCULAR_MEDIA_PEDIDOS.MEDIA_PEDIDOS * 0.99
+                     (CASE
+                          WHEN COUNT(PCPEDC.NUMPED) 
+                         	 	   >= CALCULAR_MEDIA_PEDIDOS.MEDIA_PEDIDOS
+                          THEN 'ALTA'
+                          WHEN COUNT(PCPEDC.NUMPED) 
+	                         	   BETWEEN CALCULAR_MEDIA_PEDIDOS.MEDIA_PEDIDOS * 0.7 
+	                     			   AND CALCULAR_MEDIA_PEDIDOS.MEDIA_PEDIDOS * 0.99
 					     	  THEN 'MÉDIA'
-                         ELSE 'BAIXA'
-                      END 															AS NIVEL
+                          ELSE 'BAIXA'
+                      END) 															AS NIVEL
 		        FROM WINT.PCPEDC
 		  CROSS JOIN CALCULAR_MEDIA_PEDIDOS
 		    GROUP BY PCPEDC.CODCLI, CALCULAR_MEDIA_PEDIDOS.MEDIA_PEDIDOS
@@ -50,15 +50,92 @@
 						WHEN VERIFICAR_NIVEL_CONFIANCA.NIVEL = 'MÉDIA'
 							THEN '30 DD'
 						ELSE 'A VISTA'
-					END) 															AS CONDICAO
+					END) 															AS CONDICAO,
+				   -- Seguindo a lógica da confiança, ganha acessos especiais baseado nela
+				   (CASE
+				   		WHEN VERIFICAR_NIVEL_CONFIANCA.NIVEL = 'ALTA'
+							THEN 'S'
+						ELSE 'N'
+				   END)																AS ACESSAPLANOESPECIAL,
+				   (CASE
+				   		WHEN VERIFICAR_NIVEL_CONFIANCA.NIVEL IN ('MÉDIA', 'ALTA')
+							THEN 'S'
+						ELSE 'N'
+				   END)																AS ACESSAFLEX,
+				   (CASE
+				   		WHEN VERIFICAR_NIVEL_CONFIANCA.NIVEL = 'ALTA'
+							THEN '10'
+						WHEN VERIFICAR_NIVEL_CONFIANCA.NIVEL = 'MÉDIA'
+							THEN '3'
+						WHEN VERIFICAR_NIVEL_CONFIANCA.NIVEL = 'BAIXA'
+							THEN '0'
+				   END)																AS PERCENTUALFLEX
 			  FROM VERIFICAR_NIVEL_CONFIANCA
+		),
+		PCREGIAO AS(
+			SELECT PCCLIENT.CODCLI													AS CODCLI,
+				   PCCLIENT.ESTCOB													AS ESTADO
+			  FROM WINT.PCCLIENT
+		),
+		PCFRETE AS (
+			SELECT PCPEDC.NUMPED,
+				   PCPEDC.CODCLI,
+				   PCPEDC.CODTRANSP,
+				   PCPEDC.CODENDENT,
+				   TIPOFRETE.TIPOFRETE_ID											AS TIPOFRETE_ID,
+				   TIPOFRETE.TIPOFRETEAPLICADO										AS TIPOFRETEAPLICADO,
+				   TIPOFRETE.TIPOFRETEPADRAO										AS TIPOFRETEPADRAO,
+				   (CASE
+						WHEN PCREGIAO.ESTADO NOT IN ('RS', 'SC', 'PR')
+						 AND TIPOFRETE.TIPOFRETEPADRAO != TIPOFRETE.TIPOFRETEAPLICADO
+							THEN 'S'
+					   	WHEN PCREGIAO.ESTADO IN ('RS', 'SC', 'PR')
+					   	 AND TIPOFRETE.TIPOFRETEPADRAO != TIPOFRETE.TIPOFRETEAPLICADO
+					   		THEN 'S'
+						WHEN PCREGIAO.ESTADO IN ('SC', 'PR')
+						 AND TIPOFRETE.TIPOFRETEPADRAO != TIPOFRETE.TIPOFRETEAPLICADO
+							THEN 'S'
+						ELSE 'N'
+				   END)																AS DIFERENCA_TIPOFRETE
+			  FROM WINT.PCPEDC
+			  JOIN PCREGIAO
+			    ON PCPEDC.CODCLI = PCREGIAO.CODCLI
+			  JOIN (
+			  		 SELECT SUBPCPEDC.NUMPED										AS NUMPED,
+			  		 		(CASE
+						   		 WHEN SUBPCREGIAO.ESTADO NOT IN ('RS', 'SC', 'PR')
+						   			 THEN 1
+						   		 WHEN SUBPCREGIAO.ESTADO IN ('RS', 'SC', 'PR') 
+						   			 THEN 2
+						   		 ELSE 3
+						    END)													AS TIPOFRETE_ID,
+				   			-- Para regiões do sul, frete CIF, senão frete FOB
+						    (CASE
+						   		 WHEN SUBPCREGIAO.ESTADO NOT IN ('RS', 'SC', 'PR')
+						   			 THEN 'FOB'
+						   		 WHEN SUBPCREGIAO.ESTADO IN ('RS', 'SC', 'PR') 
+						   			 THEN 'CIF'
+						   		 ELSE 'Outro'
+						    END)													AS TIPOFRETEAPLICADO,
+			  		 		(CASE
+						   		 WHEN SUBPCREGIAO.ESTADO NOT IN ('RS', 'SC', 'PR')
+						   			 THEN 'FOB'
+						   		 WHEN SUBPCREGIAO.ESTADO IN ('RS', 'SC', 'PR') 
+						   			 THEN 'CIF'
+						   		 ELSE 'Outro'
+						     END)													AS TIPOFRETEPADRAO
+			  		   FROM WINT.PCPEDC SUBPCPEDC
+					   JOIN PCREGIAO SUBPCREGIAO
+					     ON SUBPCPEDC.CODCLI = SUBPCREGIAO.CODCLI
+			  	   ) TIPOFRETE
+			  	ON PCPEDC.NUMPED = TIPOFRETE.NUMPED
 		)
    SELECT STANDARD_HASH(CLIENTE.CGCENT || CLIENTE.CLIENTE, 'MD5')           AS HASH,
           CLIENTE.CODCLI                                                    AS ID,
           (CASE
-         	  WHEN CLIENTE.DTULTCOMP < ADD_MONTHS(SYSDATE, -36) -- Inativado após 3 anos sem compras
-         	    OR CLIENTE.BLOQUEIO IS NOT NULL THEN 'N' 
-         	  ELSE 'S'
+         	   WHEN CLIENTE.DTULTCOMP < ADD_MONTHS(SYSDATE, -36) -- Inativado após 3 anos sem compras
+         	     OR CLIENTE.BLOQUEIO IS NOT NULL THEN 'N' 
+         	   ELSE 'S'
           END)                                                              AS ATIVO,
           CLIENTE.DTULTALTER                                                AS DATAATUALIZACAO,
           CLIENTE.FANTASIA													AS FANTASIA,
@@ -68,37 +145,52 @@
           CLIENTE.CEPCOB                                                    AS CEP,
           REGEXP_REPLACE(CLIENTE.ENDERCOB, '[^A-Za-z ]', '')                AS ENDERECO,
           REGEXP_REPLACE(CLIENTE.ENDERCOB, '[^0-9]', '')              		AS NUMERO,
-          CLIENTE.PONTOREFER                                                AS COMPLEMENTO,
+          CLIENTE.COMPLEMENTOCOB                                            AS COMPLEMENTO,
           CLIENTE.BAIRROCOB                                                 AS BAIRRO,
           CLIENTE.MUNICCOB                                                  AS MUNICIPIO,
           CLIENTE.ESTCOB                                                    AS UF,
           (CASE
-         	WHEN CLIENTE.PERDESC2 IS NOT NULL 
-         		THEN CLIENTE.PERDESC + CLIENTE.PERDESC2
-         	WHEN CLIENTE.PERDESC3 IS NOT NULL 
-         		THEN CLIENTE.PERDESC + CLIENTE.PERDESC3
-         	WHEN CLIENTE.PERDESC4 IS NOT NULL 
-         		THEN CLIENTE.PERDESC + CLIENTE.PERDESC4
-     		WHEN CLIENTE.PERDESC5 IS NOT NULL 
-         		THEN CLIENTE.PERDESC + CLIENTE.PERDESC5
-     		ELSE CLIENTE.PERDESC
+           	   WHEN CLIENTE.PERDESC2 IS NOT NULL 
+         	   	   THEN CLIENTE.PERDESC + CLIENTE.PERDESC2
+	       	   WHEN CLIENTE.PERDESC3 IS NOT NULL 
+	         	   THEN CLIENTE.PERDESC + CLIENTE.PERDESC3
+	           WHEN CLIENTE.PERDESC4 IS NOT NULL 
+	         		THEN CLIENTE.PERDESC + CLIENTE.PERDESC4
+	     	   WHEN CLIENTE.PERDESC5 IS NOT NULL 
+	         		THEN CLIENTE.PERDESC + CLIENTE.PERDESC5
+	     	   ELSE CLIENTE.PERDESC
           END)                                                  			AS PERCENTUALTABELA,
           AVG(TRUNC(PCPEDC.DATA)- TRUNC(PCPEDC.DTENTREGA))                  AS PRAZOMEDIOVENDA,
           VERIFICAR_NIVEL_CONFIANCA.NIVEL                                   AS NIVELCONFIANCA,
           PCPLPAG.ID                                                        AS PLANOPAGAMENTO_ID,
           CLIENTE.CODCOB                                                    AS COBRANCA_ID,
-          NULL                                                              AS PLANOPAGAMENTO_ID_B2B,
-          NULL                                                              AS COBRANCA_ID_B2B,
-          NULL                                                              AS INTEGRAB2B,
-          NULL                                                              AS INTEGRAFV,
-          NULL                                                              AS INTEGRACALLCENTER,
-          NULL                                                              AS ACESSAPLANOESPECIAL,
-          NULL                                                              AS ACESSAFLEX,
-          NULL                                                              AS PERCENTUALFLEX,
-          NULL                                                              AS TRANSPORTADORA_ID,
-          NULL                                                              AS TIPOFRETE_ID,
-          NULL                                                              AS DIFERENCA_TIPOFRETE,
-          NULL                                                              AS ENDERECOENTREGA_ID,
+          PCPLPAG.ID                                                        AS PLANOPAGAMENTO_ID_B2B,
+          CLIENTE.CODCOB                                                    AS COBRANCA_ID_B2B,
+          (CASE
+          	   WHEN LENGTH(CLIENTE.CGCENT) = 18 THEN 'S' -- Se FOR CNPJ, possui cadastro como b2b
+          	   ELSE 'N'
+          END) 																AS INTEGRAB2B,
+           -- Como na tabela os clientes só possuem um representante, assim já funciona, porém
+          -- se houvesse mais, checaria através de uma cartela de representantes
+          (CASE
+          	   WHEN LENGTH(CLIENTE.CGCENT) = 18 THEN 'S' -- Se FOR CNPJ, possui cadastro como b2b
+          	   ELSE 'N'
+          END) 																AS INTEGRAB2B,
+          (CASE
+          	   WHEN REPRESENTANTE.TIPOVEND = 'R' THEN 'S'
+          	   ELSE 'N'                             					    
+          END)																AS INTEGRAFV,
+          (CASE
+          	   WHEN REPRESENTANTE.TIPOVEND = 'i' THEN 'S'
+          	   ELSE 'N'                             					    
+          END)  															AS INTEGRACALLCENTER,
+          PCPLPAG.ACESSAPLANOESPECIAL                                       AS ACESSAPLANOESPECIAL,
+          PCPLPAG.ACESSAFLEX                                                AS ACESSAFLEX,
+          PCPLPAG.PERCENTUALFLEX                                            AS PERCENTUALFLEX,
+          PCPEDC.CODTRANSP                                                  AS TRANSPORTADORA_ID,
+          PCFRETE.TIPOFRETE_ID                                              AS TIPOFRETE_ID,
+          PCFRETE.DIFERENCA_TIPOFRETE                                       AS DIFERENCA_TIPOFRETE,
+          PCPEDC.CODENDENT                                                  AS ENDERECOENTREGA_ID,
           NULL                                                              AS TELEFONES,
           NULL                                                              AS EMAILS,
           NULL                                                              AS REGIAO_ID,
@@ -177,10 +269,16 @@
      FROM WINT.PCCLIENT CLIENTE
      JOIN WINT.PCPEDC
        ON CLIENTE.CODCLI = PCPEDC.CODCLI
+     JOIN WINT.PCUSUARI REPRESENTANTE
+	   ON PCPEDC.CODUSUR = REPRESENTANTE.CODUSUR
 LEFT JOIN VERIFICAR_NIVEL_CONFIANCA
        ON CLIENTE.CODCLI = VERIFICAR_NIVEL_CONFIANCA.CODCLI
 LEFT JOIN PCPLPAG
        ON VERIFICAR_NIVEL_CONFIANCA. NIVEL = PCPLPAG.NIVEL
+LEFT JOIN PCREGIAO
+ 	   ON CLIENTE.CODCLI = PCREGIAO.CODCLI
+LEFT JOIN PCFRETE
+	   ON PCPEDC.NUMPED = PCFRETE.NUMPED
  GROUP BY CLIENTE.CGCENT,
           CLIENTE.CLIENTE,
           CLIENTE.CODCLI,
@@ -191,7 +289,7 @@ LEFT JOIN PCPLPAG
           CLIENTE.IEENT,
           CLIENTE.CEPCOB,
           CLIENTE.ENDERCOB,
-          CLIENTE.PONTOREFER,
+          CLIENTE.COMPLEMENTOCOB,
           CLIENTE.BAIRROCOB,
           CLIENTE.MUNICCOB,
           CLIENTE.ESTCOB,
@@ -202,4 +300,13 @@ LEFT JOIN PCPLPAG
           CLIENTE.PERDESC5,
           CLIENTE.CODCOB,
    	   	  VERIFICAR_NIVEL_CONFIANCA.NIVEL,
-     	  PCPLPAG.ID;
+     	  PCPLPAG.ID,
+     	  PCPLPAG.ACESSAPLANOESPECIAL,
+          PCPLPAG.ACESSAFLEX,
+          PCPLPAG.PERCENTUALFLEX,
+     	  REPRESENTANTE.TIPOVEND,
+     	  PCPEDC.CODTRANSP,
+     	  PCPEDC.CODENDENT,
+     	  PCFRETE.TIPOFRETE_ID,
+     	  PCFRETE.DIFERENCA_TIPOFRETE;
+    
