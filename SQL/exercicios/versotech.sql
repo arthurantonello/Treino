@@ -2899,3 +2899,94 @@ ORDER BY CODIGO_CLIENTE ASC;
     	 ) VENDAS_2024
       ON VENDAS_2023.CODCLI = VENDAS_2024.CODCLI
 ORDER BY CODIGO_CLIENTE ASC;
+
+-- Preciso de um relatório que una a lista de clientes que compraram no último trimestre de 2011
+-- com os que compraram em todo o ano de 2024, sem duplicações. Para cada cliente, exiba o código
+-- e a data da primeira compra em cada período. Use UNION para combinar as duas seleções e subqueries
+-- para buscar as datas.
+
+  SELECT PCPEDI.CODCLI,
+  		 MIN(PCPEDI.DATA) AS PRIMEIRA_COMPRA
+    FROM WINT.PCPEDI
+   WHERE PCPEDI.DATA BETWEEN TO_DATE('01/09/2011', 'DD/MM/YYYY')
+   						 AND TO_DATE('31/12/2011', 'DD/MM/YYYY') 
+GROUP BY PCPEDI.CODCLI
+   UNION
+  SELECT PCPEDC.CODCLI,
+  		 MIN(PCPEDC.DATA) AS PRIMEIRA_COMPRA
+    FROM WINT.PCPEDC
+   WHERE EXTRACT(YEAR FROM PCPEDC.DATA) = 2024
+GROUP BY PCPEDC.CODCLI;
+
+
+-- Gere uma lista de clientes que tiveram movimento em out/nov de 2011 ou em 2024,
+-- apresentando, para cada um, o código e o valor total gasto no período em que houve compra.
+
+  SELECT PCPEDI.CODCLI,
+  		 SUM(PCPEDI.PVENDA * PCPEDI.QT) AS TOTAL_GASTO
+    FROM WINT.PCPEDI
+   WHERE PCPEDI.DATA BETWEEN TO_DATE('01/10/2011', 'DD/MM/YYYY')
+						 AND TO_DATE('30/11/2011', 'DD/MM/YYYY')
+GROUP BY CODCLI
+   UNION
+  SELECT PCPEDC.CODCLI,
+  		 SUM(PCPEDC.VLTOTAL) AS TOTAL_GASTO
+    FROM WINT.PCPEDC
+   WHERE EXTRACT(YEAR FROM PCPEDC.DATA) = 2024
+GROUP BY PCPEDC.CODCLI;
+
+-- Apresente os representantes que registraram vendas em out/nov de 2011 e também em 2023,
+-- retornando apenas o código de cada um.
+
+   SELECT PCPEDI.CODUSUR
+     FROM WINT.PCPEDI
+    WHERE PCPEDI.DATA BETWEEN TO_DATE('01/10/2011', 'DD/MM/YYYY')
+						  AND TO_DATE('30/11/2011', 'DD/MM/YYYY')
+INTERSECT
+   SELECT PCPEDC.CODUSUR
+     FROM WINT.PCPEDC
+    WHERE EXTRACT(YEAR FROM PCPEDC.DATA) = 2024;
+
+-- Faça um levantamento dos fornecedores que atuaram em out/nov de 2011 e exiba o código
+-- de cada um com sua receita total, separando mentalmente aqueles com desempenho acima
+-- e abaixo do patamar médio do período.
+   
+   
+  SELECT PCPRODUT.CODFORNEC,
+  		 SUM(PCPEDI.QT) AS SOMA
+    FROM WINT.PCPEDI
+    JOIN WINT.PCPRODUT
+      ON PCPEDI.CODPROD = PCPRODUT.CODPROD
+    WHERE PCPEDI.POSICAO = 'F'
+      AND PCPEDI.DATA BETWEEN TO_DATE('01/10/2011', 'DD/MM/YYYY')
+						  AND TO_DATE('30/11/2011', 'DD/MM/YYYY')
+GROUP BY PCPRODUT.CODFORNEC
+ HAVING SUM(PCPEDI.QT) > (
+						  SELECT AVG(SOMA_TOTAL.TOTAL_QTD) MEDIA_PERIODO
+						    FROM (
+								   SELECT SUM(SUBPCPEDI.QT) AS TOTAL_QTD
+								     FROM WINT.PCPEDI SUBPCPEDI
+								     JOIN WINT.PCPRODUT SUBPCPRODUT
+								       ON SUBPCPEDI.CODPROD = SUBPCPRODUT.CODPROD
+							        WHERE SUBPCPEDI.POSICAO = 'F'
+							          AND SUBPCPEDI.DATA BETWEEN TO_DATE('01/10/2011', 'DD/MM/YYYY')
+	  													  AND TO_DATE('30/11/2011', 'DD/MM/YYYY')
+								 GROUP BY SUBPCPRODUT.CODFORNEC
+						   		 ) SOMA_TOTAL);
+
+-- Crie um histórico de vendas mensais para 2023, mostrando o mês e o total faturado,
+-- além de incluir uma linha extra que represente o valor médio mensal do ano.
+  
+  SELECT EXTRACT(MONTH FROM PCPEDC.DATA) 	AS MES,
+  		 SUM(PCPEDC.VLTOTAL)				AS TOTAL_FATURADO,
+  		 (SELECT ROUND(AVG(CALCULO_SOMA.TOTAL_FATURADO), 2) 
+  			 FROM (
+		  		     SELECT SUM(PCPEDC.VLTOTAL)				AS TOTAL_FATURADO
+					   FROM WINT.PCPEDC
+					  WHERE PCPEDC.POSICAO = 'F'
+				   GROUP BY EXTRACT(MONTH FROM PCPEDC.DATA)
+  			 ) CALCULO_SOMA) VALOR_MEDIO_MENSAL
+    FROM WINT.PCPEDC
+   WHERE PCPEDC.POSICAO = 'F'
+GROUP BY EXTRACT(MONTH FROM PCPEDC.DATA)
+ORDER BY MES ASC;
